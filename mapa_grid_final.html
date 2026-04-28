@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Árbol de Habilidades — Licenciatura en Tecnología</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#fff;font-family:'Inter',sans-serif;color:#111;padding:32px 40px 60px}
+
+/* HEADER */
+.hdr{border-bottom:2px solid #111;padding-bottom:12px;margin-bottom:18px;display:flex;justify-content:space-between;align-items:flex-end}
+.hdr h1{font-size:22px;font-weight:700}
+.hdr p{font-size:11px;color:#777;margin-top:3px}
+.hdr-r{text-align:right;font-size:10px;color:#999}
+.hdr-r strong{display:block;font-size:12px;color:#444}
+
+/* LEGEND */
+.legend{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:20px;padding:9px 14px;background:#f8f8f8;border:1px solid #eee;border-radius:5px;font-size:10px;color:#555}
+.leg{display:flex;align-items:center;gap:6px}
+.ld{width:12px;height:12px;border-radius:2px;border-left:4px solid;background:#fff;flex-shrink:0}
+
+/* SECTION LABEL */
+.sec{font-size:8px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#ccc;
+  padding:6px 0 4px;margin-top:10px;border-top:1px solid #f0f0f0}
+
+/* TOOLTIP */
+#tip{position:fixed;display:none;pointer-events:none;z-index:200;background:#111;color:#f0f0f0;
+  border-radius:6px;padding:8px 12px;font-size:10px;max-width:200px;line-height:1.5;
+  box-shadow:0 4px 14px rgba(0,0,0,0.3)}
+#tip .tq{color:#1A7A42;font-size:9px;margin-top:3px}
+#tip .th{color:#1040A0;font-size:9px;margin-top:2px}
+
+/* ═══════════════════════════════════════
+   MAIN CSS GRID
+   18 columns total:
+   C1–C4   : Tronco Común (matemáticas/ciencias)
+   C5–C7   : Núcleo Integrador
+   C8–C9   : CIM
+   C10–C12 : CCM
+   C13–C14 : TI
+   Gaps between groups via empty columns
+═══════════════════════════════════════ */
+.curr{position:relative}
+svg#sv{position:absolute;top:0;left:0;overflow:visible;pointer-events:none;z-index:5}
+
+.sem-block{margin-bottom:0}
+.sem-grid{
+  display:grid;
+  grid-template-columns:
+    52px          /* sem label */
+    8px           /* small gap */
+    repeat(4,160px) /* T: C1-C4 */
+    16px          /* group gap */
+    repeat(3,160px) /* N: C5-C7 */
+    20px          /* group gap */
+    repeat(2,160px) /* CIM: C8-C9 */
+    20px          /* group gap */
+    repeat(3,160px) /* CCM: C10-C12 */
+    20px          /* group gap */
+    repeat(2,160px) /* TI: C13-C14 */
+  ;
+  column-gap:10px;
+  row-gap:0;
+  align-items:start;
+  margin-bottom:90px; /* gap between semesters for routing lines */
+}
+.sem-grid:last-child{margin-bottom:0}
+
+/* semester label */
+.sl{grid-column:1;padding-top:16px;text-align:right;padding-right:10px;
+  font-size:9px;font-weight:600;letter-spacing:1px;text-transform:uppercase;
+  color:#bbb;border-right:1px solid #eee}
+
+/* column header row */
+.hrow{
+  display:grid;
+  grid-template-columns:
+    52px 8px
+    repeat(4,160px) 16px
+    repeat(3,160px) 20px
+    repeat(2,160px) 20px
+    repeat(3,160px) 20px
+    repeat(2,160px);
+  column-gap:10px;
+  margin-bottom:6px;
+}
+.hrow-lbl{font-size:8px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;
+  color:#aaa;padding:4px 0;border-bottom:2px solid}
+.hl-t  {grid-column:3/7; border-color:#BBBBBB;color:#888}
+.hl-n  {grid-column:8/11;border-color:#E07000;color:#C05800}
+.hl-cim{grid-column:12/14;border-color:#1A7A42;color:#1A7A42}
+.hl-ccm{grid-column:15/18;border-color:#1040A0;color:#1040A0}
+.hl-ti {grid-column:19/21;border-color:#B89000;color:#8A6A00}
+
+/* subject card */
+.mat{
+  border:1.5px solid;border-left-width:4px;border-radius:5px;
+  padding:9px 10px;min-height:76px;background:#fff;
+  display:flex;flex-direction:column;justify-content:space-between;
+  cursor:default;transition:box-shadow .1s;position:relative;
+}
+.mat:hover{box-shadow:0 2px 10px rgba(0,0,0,0.12)}
+.mat-name{font-size:9.5px;font-weight:500;line-height:1.35;margin-bottom:4px}
+.mat-bot{display:flex;justify-content:space-between;align-items:flex-end}
+.mat-cr{font-size:7.5px;opacity:.55}
+.mat-tag{font-size:7px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;opacity:.5}
+.star{font-size:8px;margin-right:2px;opacity:.7}
+
+/* color themes */
+.tronco{border-color:#BBBBBB;border-left-color:#999}
+.tronco .mat-name{color:#222}
+.integ {border-color:#E8A060;border-left-color:#C05800;background:#FFFAF5}
+.integ .mat-name{color:#7A3800}
+.cim   {border-color:#70C090;border-left-color:#1A7A42;background:#F4FDF7}
+.cim   .mat-name{color:#0A4C28}
+.ccm   {border-color:#70A0D8;border-left-color:#1040A0;background:#F5F8FF}
+.ccm   .mat-name{color:#082060}
+.ti    {border-color:#D0B840;border-left-color:#B89000;background:#FDFBF0}
+.ti    .mat-name{color:#5A4000}
+.opt   {border-color:#A080D8;border-left-color:#7040D0;background:#FAF7FF}
+.opt   .mat-name{color:#3A1080}
+
+/* credits */
+.cr-row{display:flex;gap:24px;margin-top:20px;padding-top:14px;border-top:1px solid #eee;font-size:10px;color:#888}
+.cr-n{font-size:20px;font-weight:700;display:block;line-height:1}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div>
+    <h1>Licenciatura en Tecnología · Mapa Curricular</h1>
+    <p>UNAM · ENES Juriquilla · Plan 2219</p>
+  </div>
+  <div class="hdr-r"><strong>Árbol de Habilidades</strong>372 cr · 3 líneas · 8 semestres</div>
+</div>
+
+<div class="legend">
+  <span class="leg"><span class="ld" style="border-color:#999"></span>Tronco Común</span>
+  <span class="leg"><span class="ld" style="border-color:#C05800;background:#FFFAF5"></span>Núcleo Integrador</span>
+  <span class="leg"><span class="ld" style="border-color:#1A7A42;background:#F4FDF7"></span>CIM · Ciencia e Ing. Materiales</span>
+  <span class="leg"><span class="ld" style="border-color:#1040A0;background:#F5F8FF"></span>CCM · Ciencias Comp. y Matemáticas</span>
+  <span class="leg"><span class="ld" style="border-color:#B89000;background:#FDFBF0"></span>TI · Tecnología Industrial</span>
+  <span class="leg"><span class="ld" style="border-color:#7040D0;background:#FAF7FF"></span>Optativas / AP</span>
+  <span style="margin-left:auto;font-size:9px;color:#ccc">↓ flecha = prerrequisito · ★ = exclusiva de línea</span>
+</div>
+
+<div id="tip"></div>
+<div class="curr" id="curr">
+<svg id="sv"></svg>
+
+<!-- COLUMN HEADERS -->
+<div class="hrow">
+  <div></div><div></div>
+  <div class="hrow-lbl hl-t">Tronco Común</div>
+  <div></div>
+  <div class="hrow-lbl hl-n">Núcleo Integrador</div>
+  <div></div>
+  <div class="hrow-lbl hl-cim">CIM · Materiales</div>
+  <div></div>
+  <div class="hrow-lbl hl-ccm">CCM · Comp. y Matemáticas</div>
+  <div></div>
+  <div class="hrow-lbl hl-ti">TI · Tecnología Industrial</div>
+</div>
+
+<!-- ═══ ETAPA BÁSICA ═══ -->
+<div class="sec">● Etapa de Formación Básica — Semestres 1 y 2 — materias compartidas por las 3 líneas</div>
+
+<!-- SEM 1 -->
+<div class="sem-grid">
+  <div class="sl">SEM<br>1</div>
+  <div></div><!-- small gap -->
+  <!-- T: C1 -->
+  <div class="mat tronco" data-id="calc1" data-label="Cálculo Diferencial e Integral">
+    <div class="mat-name">Cálculo Diferencial e Integral</div>
+    <div class="mat-bot"><span class="mat-cr">12h · 6cr</span></div>
+  </div>
+  <!-- T: C2 -->
+  <div class="mat tronco" data-id="alg" data-label="Álgebra Lineal">
+    <div class="mat-name">Álgebra Lineal</div>
+    <div class="mat-bot"><span class="mat-cr">8h · 4cr</span></div>
+  </div>
+  <!-- T: C3 -->
+  <div class="mat tronco" data-id="bio1" data-label="Biología General">
+    <div class="mat-name">Biología General</div>
+    <div class="mat-bot"><span class="mat-cr">10h · 6cr</span></div>
+  </div>
+  <!-- T: C4 -->
+  <div class="mat tronco" data-id="qi" data-label="Química Inorgánica">
+    <div class="mat-name">Química Inorgánica</div>
+    <div class="mat-bot"><span class="mat-cr">10h · 6cr</span></div>
+  </div>
+  <div></div><!-- group gap -->
+  <!-- N: C5 -->
+  <div class="mat integ" data-id="com" data-label="Estrategias de la Comunicación">
+    <div class="mat-name">Estrategias de la Comunicación</div>
+    <div class="mat-bot"><span class="mat-cr">4h · 4cr</span></div>
+  </div>
+  <!-- N: C6 -->
+  <div class="mat integ" data-id="gen1" data-label="Temas Selectos Género I">
+    <div class="mat-name">Temas Selectos Género I</div>
+    <div class="mat-bot"><span class="mat-cr">2h · 2cr</span></div>
+  </div>
+  <!-- N: C7 -->
+  <div class="mat integ" data-id="inv" data-label="Fundamentos de Investigación">
+    <div class="mat-name">Fundamentos de Investigación</div>
+    <div class="mat-bot"><span class="mat-cr">4h · 4cr</span></div>
+  </div>
+  <div></div><!-- CIM gap -->
+  <div></div><div></div><!-- CIM empty -->
+  <div></div><!-- CCM gap -->
+  <div></div><div></div><div></div><!-- CCM empty -->
+  <div></div><!-- TI gap -->
+  <div></div><div></div><!-- TI empty -->
+</div>
+
+<!-- SEM 2 -->
+<div class="sem-grid">
+  <div class="sl">SEM<br>2</div>
+  <div></div>
+  <!-- T: C1 -->
+  <div class="mat tronco" data-id="calcv" data-label="Cálculo Vectorial">
+    <div class="mat-name">Cálculo Vectorial</div>
+    <div class="mat-bot"><span class="mat-cr">8h · 4cr</span></div>
+  </div>
+  <!-- T: C2 -->
+  <div class="mat tronco" data-id="vc" data-label="Variable Compleja">
+    <div class="mat-name">Variable Compleja</div>
+    <div class="mat-bot"><span class="mat-cr">6h · 4cr</span></div>
+  </div>
+  <!-- T: C3 -->
+  <div class="mat tronco" data-id="prob" data-label="Probabilidad y Estadística">
+    <div class="mat-name">Probabilidad y Estadística</div>
+    <div class="mat-bot"><span class="mat-cr">8h · 4cr</span></div>
+  </div>
+  <!-- T: C4 -->
+  <div class="mat tronco" data-id="qo" data-label="Química Orgánica">
+    <div class="mat-name">Química Orgánica</div>
+    <div class="mat-bot"><span class="mat-cr">10h · 6cr</span></div>
+  </div>
+  <div></div>
+  <!-- N: C5 -->
+  <div class="mat tronco" data-id="prog1" data-label="Fundamentos de Programación">
+    <div class="mat-name">Fundamentos de Programación</div>
+    <div class="mat-bot"><span class="mat-cr">10h · 8cr</span></div>
+  </div>
+  <!-- N: C6 -->
+  <div class="mat integ" data-id="gen2" data-label="Temas Selectos Género II">
+    <div class="mat-name">Temas Selectos Género II</div>
+    <div class="mat-bot"><span class="mat-cr">2h · 2cr</span></div>
+  </div>
+  <!-- N: C7 -->
+  <div class="mat integ" data-id="lab1" data-label="Laboratorio Tecnológico I">
+    <div class="mat-name">Laboratorio Tecnológico I</div>
+    <div class="mat-bot"><span class="mat-cr">4h · 4cr</span></div>
+  </div>
+  <div></div>
+  <div></div><div></div>
+  <div></div>
+  <div></div><div></div><div></div>
+  <div></div>
+  <div></div><div></div>
+</div>
+
+<!-- ═══ ETAPA INTERMEDIA ═══ -->
+<div class="sec">● Etapa de Formación Intermedia — Semestres 3–6 — las 3 líneas divergen</div>
+
+<!-- SEM 3 -->
+<div class="sem-grid">
+  <div class="sl">SEM<br>3</div>
+  <div></div>
+  <!-- T: C1 -->
+  <div class="mat tronco" data-id="ed1" data-label="Ecuaciones Diferenciales I">
+    <div class="mat-name">Ecuaciones Diferenciales I</div>
+    <div class="mat-bot"><span class="mat-cr">8h · 4cr</span></div>
+  </div>
+  <!-- T: C2 -->
+  <div class="mat tronco" data-id="mec" data-label="Mecánica Clásica">
+    <div class="mat-name">Mecánica Clásica</div>
+    <div class="mat-bot"><span class="mat-cr">6h · 4cr</span></div>
+  </div>
+  <!-- T: C3 -->
+  <div class="mat tronco" data-id="termo" data-label="Termodinámica">
+    <div class="mat-name">Termodinámica</div>
+    <div class="mat-bot"><span class="mat-cr">6h · 4cr</span></div>
+  </div>
+  <!-- T: C4 -->
+  <div class="mat tronco" data-id="rec" data-label="Recursos Naturales">
+    <div class="mat-name">Recursos Naturales</div>
+    <div class="mat-bot"><span class="mat-cr">10h · 6cr</span></div>
+  </div>
+  <div></div>
+  <!-- N: C5 -->
+  <div class="mat integ" data-id="orig" data-label="Orígenes de la Ciencia Nacional">
+    <div class="mat-name">Orígenes de la Ciencia Nacional</div>
+    <div class="mat-bot"><span class="mat-cr">4h · 4cr</span></div>
+  </div>
+  <div></div><div></div><!-- N: C6,C7 empty -->
+  <div></div>
+  <!-- CIM: C8 -->
+  <div class="mat cim" data-id="icm" data-label="Intro Ciencia de Materiales" style="border-left-width:4px">
+    <div class="mat-name"><span class="star">★</span>Intro Ciencia de Materiales</div>
+    <div class="mat-bot"><span class="mat-cr">10h · 6cr</span><span class="mat-tag">CIM</span></div>
+  </div>
+  <div></div><!-- CIM: C9 empty -->
+  <div></div>
+  <!-- CCM: C10 -->
+  <div class="mat ccm" data-id="poo" data-label="Prog. Orientada a Objetos" style="border-left-width:4px">
+    <div class="mat-name"><span class="star">★</span>Prog. Orientada a Objetos</div>
+    <div class="mat-bot"><span class="mat-cr">— cr</span><span class="mat-tag">CCM</span></div>
+  </div>
+  <div></div><div></div><!-- CCM: C11,C12 empty -->
+  <div></div>
+  <!-- TI: C13 -->
+  <div class="mat ti" data-id="dibtec" data-label="Dibujo Técnico" style="border-left-width:4px">
+    <div class="mat-name"><span class="star">★</span>Dibujo Técnico</div>
+    <div class="mat-bot"><span class="mat-cr">4h · 4cr</span><span class="mat-tag">TI</span></div>
+  </div>
+  <div></div><!-- TI: C14 empty -->
+</div>
+
+<!-- SEM 4 -->
+<div class="sem-grid">
+  <div class="sl">SEM<br>4</div>
+  <div></div>
+  <!-- T: C1 -->
+  <div class="mat tronco" data-id="ed2" data-label="Ecuaciones Diferenciales II">
+    <div class="mat-name">Ecuaciones Diferenciales II</div>
+    <div class="mat-bot"><span class="mat-cr">8h · 4cr</span></div>
+  </div>
+  <!-- T: C2 -->
+  <div class="mat tronco" data-id="em" data-label="Electromagnetismo">
+    <div class="mat-name">Electromagnetismo</div>
+    <div class="mat-bot"><span class="mat-cr">10h · 6cr</span></div>
+  </div>
+  <!-- T: C3 -->
+  <div class="mat tronco" data-id="circ" data-label="Circuitos Eléctricos">
+    <div class="mat-name">Circuitos Eléctricos</div>
+    <div class="mat-bot"><span class="mat-cr">10h · 6cr</span></div>
+  </div>
+  <div></div><!-- T: C4 empty -->
+  <div></div>
+  <!-- N: C5 -->
+  <div class="mat integ" data-id="lab2" data-label="Laboratorio Tecnológico II">
+    <div class="mat-name">Laboratorio Tecnológico II</div>
+    <div class="mat-bot"><span class="mat-cr">4h · 4cr</span></div>
+  </div>
+  <div></div><div></div>
+  <div></div>
+  <!-- CIM: C8 -->
+  <div class="mat cim" data-id="fes" data-label="Física del Estado Sólido">
+    <div class="mat-name">Física del Estado Sólido</div>
+    <div class="mat-bot"><span class="mat-cr">8h · 4cr</span><span class="mat-tag">CIM</span></div>
+  </div>
+  <!-- CIM: C9 -->
+  <div class="mat cim" data-id="pmec" data-label="Prop. Mecánicas de Materiales">
+    <div class="mat-name">Prop. Mecánicas de Materiales</div>
+    <div class="mat-bot"><span class="mat-cr">8h · 6cr</span><span class="mat-tag">CIM</span></div>
+  </div>
+  <div></div>
+  <!-- CCM: C10 -->
+  <div class="mat ccm" data-id="matd" data-label="Matemáticas Discretas">
+    <div class="mat-name">Matemáticas Discretas</div>
+    <div class="mat-bot"><span class="mat-cr">— cr</span><span class="mat-tag">CCM</span></div>
+  </div>
+  <!-- CCM: C11 -->
+  <div class="mat ccm" data-id="edd" data-label="Estructuras de Datos">
+    <div class="mat-name">Estructuras de Datos</div>
+    <div class="mat-bot"><span class="mat-cr">— cr</span><span class="mat-tag">CCM</span></div>
+  </div>
+  <div></div><!-- CCM: C12 empty -->
+  <div></div>
+  <!-- TI: C13 -->
+  <div class="mat ti" data-id="ingmat" data-label="Ingeniería de Materiales">
+    <div class="mat-name">Ingeniería de Materiales</div>
+    <div class="mat-bot"><span class="mat-cr">— cr</span><span class="mat-tag">TI</span></div>
+  </div>
+  <div></div>
+</div>
+
+<!-- SEM 5 -->
+<div class="sem-grid">
+  <div class="sl">SEM<br>5</div>
+  <div></div>
+  <!-- T: C1 -->
+  <div class="mat tronco" data-id="dsf" data-label="Dinámica de Sistemas Físicos">
+    <div class="mat-name">Dinámica de Sistemas Físicos</div>
+    <div class="mat-bot"><span class="mat-cr">10h · 6cr</span></div>
+  </div>
+  <div></div><div></div><div></div><!-- T: C2-C4 empty -->
+  <div></div>
+  <!-- N: C5 -->
+  <div class="mat integ" data-id="ense" data-label="Enseñanza Eficiente">
+    <div class="mat-name">Enseñanza Eficiente</div>
+    <div class="mat-bot"><span class="mat-cr">4h · 4cr</span></div>
+  </div>
+  <div></div><div></div>
+  <div></div>
+  <!-- CIM: C8 -->
+  <div class="mat cim" data-id="mpoli" data-label="Materiales Poliméricos">
+    <div class="mat-name">Materiales Poliméricos</div>
+    <div class="mat-bot"><span class="mat-cr">8h · 4cr</span><span class="mat-tag">CIM</span></div>
+  </div>
+  <!-- CIM: C9 -->
+  <div class="mat cim" data-id="pem" data-label="Prop. Eléctricas y Magnéticas">
+    <div class="mat-name">Prop. Eléctricas y Magnéticas</div>
+    <div class="mat-bot"><span class="mat-cr">8h · 4cr</span><span class="mat-tag">CIM</span></div>
+  </div>
+  <div></div>
+  <!-- CCM: C10 -->
+  <div class="mat ccm" data-id="lfa" data-label="Lenguajes Formales y Autómatas">
+    <div class="mat-name">Lenguajes Formales y Autómatas</div>
+    <div class="mat-bot"><span class="mat-cr">8h · 4cr</span><span class="mat-tag">CCM</span></div>
+  </div>
+  <!-- CCM: C11 -->
+  <div class="mat ccm" data-id="daa" data-label="Diseño y Análisis de Algoritmos">
+    <div class="mat-name">Diseño y Análisis de Algoritmos</div>
+    <div class="mat-bot"><span class="mat-cr">10h · 6cr</span><span class="mat-tag">CCM</span></div>
+  </div>
+  <!-- CCM: C12 -->
+  <div class="mat ccm" data-id="isw" data-label="Ingeniería de Software">
+    <div class="mat-name">Ingeniería de Software</div>
+    <div class="mat-bot"><span class="mat-cr">8h · 4cr</span><span class="mat-tag">CCM</span></div>
+  </div>
+  <div></div>
+  <!-- TI: C13 -->
+  <div class="mat ti" data-id="est" data-label="Estudio del Trabajo">
+    <div class="mat-name">Estudio del Trabajo</div>
+    <div class="mat-bot"><span class="mat-cr">8h · 4cr</span><span class="mat-tag">TI</span></div>
+  </div>
+  <!-- TI: C14 -->
+  <div class="mat ti" data-id="io" data-label="Investigación de Operaciones">
+    <div class="mat-name">Investigación de Operaciones</div>
+    <div class="mat-bot"><span class="mat-cr">8h · 4cr</span><span class="mat-tag">TI</span></div>
+  </div>
+</div>
+
+<!-- SEM 6 -->
+<div class="sem-grid">
+  <div class="sl">SEM<br>6</div>
+  <div></div>
+  <div></div><div></div><div></div><div></div><!-- T empty -->
+  <div></div>
+  <!-- N: C5 -->
+  <div class="mat integ" data-id="adm" data-label="Adm. Proyectos e Innovación Tecnológica">
+    <div class="mat-name">Adm. Proyectos e Innovación Tecnológica</div>
+    <div class="mat-bot"><span class="mat-cr">8h · 4cr</span></div>
+  </div>
+  <!-- N: C6 -->
+  <div class="mat integ" data-id="etica" data-label="Ética Profesional">
+    <div class="mat-name">Ética Profesional</div>
+    <div class="mat-bot"><span class="mat-cr">6h · 6cr</span></div>
+  </div>
+  <div></div>
+  <div></div>
+  <!-- CIM: C8 -->
+  <div class="mat cim" data-id="mcer" data-label="Materiales Cerámicos">
+    <div class="mat-name">Materiales Cerámicos</div>
+    <div class="mat-bot"><span class="mat-cr">10h · 6cr</span><span class="mat-tag">CIM</span></div>
+  </div>
+  <!-- CIM: C9 -->
+  <div class="mat cim" data-id="carat" data-label="Caracterización de Materiales">
+    <div class="mat-name">Caracterización de Materiales</div>
+    <div class="mat-bot"><span class="mat-cr">8h · 6cr</span><span class="mat-tag">CIM</span></div>
+  </div>
+  <div></div>
+  <!-- CCM: C10 -->
+  <div class="mat ccm" data-id="bd" data-label="Bases de Datos">
+    <div class="mat-name">Bases de Datos</div>
+    <div class="mat-bot"><span class="mat-cr">8h · 4cr</span><span class="mat-tag">CCM</span></div>
+  </div>
+  <!-- CCM: C11 -->
+  <div class="mat ccm" data-id="ia" data-label="Inteligencia Artificial">
+    <div class="mat-name">Inteligencia Artificial</div>
+    <div class="mat-bot"><span class="mat-cr">8h · 6cr</span><span class="mat-tag">CCM</span></div>
+  </div>
+  <div></div>
+  <div></div>
+  <!-- TI: C13 -->
+  <div class="mat ti" data-id="elec" data-label="Electrónica Industrial">
+    <div class="mat-name">Electrónica Industrial</div>
+    <div class="mat-bot"><span class="mat-cr">10h · 6cr</span><span class="mat-tag">TI</span></div>
+  </div>
+  <!-- TI: C14 -->
+  <div class="mat ti" data-id="plan" data-label="Planeación y Control de la Producción">
+    <div class="mat-name">Planeación y Control de la Producción</div>
+    <div class="mat-bot"><span class="mat-cr">8h · 4cr</span><span class="mat-tag">TI</span></div>
+  </div>
+</div>
+
+<!-- ═══ ETAPA AVANZADA ═══ -->
+<div class="sec">● Etapa de Formación Avanzada — Semestres 7–8</div>
+
+<!-- SEM 7 -->
+<div class="sem-grid">
+  <div class="sl">SEM<br>7</div>
+  <div></div>
+  <div></div><div></div><div></div><div></div>
+  <div></div>
+  <!-- N: C5 -->
+  <div class="mat integ" data-id="est1" data-label="Estancia de Investigación I">
+    <div class="mat-name">Estancia de Investigación I</div>
+    <div class="mat-bot"><span class="mat-cr">10h · 10cr</span></div>
+  </div>
+  <!-- N: C6 -->
+  <div class="mat integ" data-id="opteco" data-label="Optativa Económico-Administrativa">
+    <div class="mat-name">Optativa Económico-Admin.</div>
+    <div class="mat-bot"><span class="mat-cr">8h · 6cr</span></div>
+  </div>
+  <div></div>
+  <div></div>
+  <!-- CIM: C8 -->
+  <div class="mat cim" data-id="biom" data-label="Biomateriales">
+    <div class="mat-name">Biomateriales</div>
+    <div class="mat-bot"><span class="mat-cr">10h · 6cr</span><span class="mat-tag">CIM</span></div>
+  </div>
+  <!-- CIM: C9 -->
+  <div class="mat opt" data-id="op_cim7" data-label="Asig. Opt. Prof. CIM">
+    <div class="mat-name">Asig. Opt. Prof. CIM</div>
+    <div class="mat-bot"><span class="mat-cr">8h · 4cr</span><span class="mat-tag">AP</span></div>
+  </div>
+  <div></div>
+  <!-- CCM: C10 -->
+  <div class="mat ccm" data-id="mdat" data-label="Minería de Datos">
+    <div class="mat-name">Minería de Datos</div>
+    <div class="mat-bot"><span class="mat-cr">8h · 6cr</span><span class="mat-tag">CCM</span></div>
+  </div>
+  <!-- CCM: C11 -->
+  <div class="mat opt" data-id="op_ccm7" data-label="Asig. Opt. Prof. CCM">
+    <div class="mat-name">Asig. Opt. Prof. CCM</div>
+    <div class="mat-bot"><span class="mat-cr">8h · 4cr</span><span class="mat-tag">AP</span></div>
+  </div>
+  <div></div>
+  <div></div>
+  <!-- TI: C13 -->
+  <div class="mat ti" data-id="cad" data-label="Dis. y Manuf. Asistidos por Computadora">
+    <div class="mat-name">Dis. y Manuf. Asistidos por Computadora</div>
+    <div class="mat-bot"><span class="mat-cr">8h · 6cr</span><span class="mat-tag">TI</span></div>
+  </div>
+  <!-- TI: C14 -->
+  <div class="mat ti" data-id="inst" data-label="Instrumentación y Medición">
+    <div class="mat-name">Instrumentación y Medición</div>
+    <div class="mat-bot"><span class="mat-cr">6h · 6cr</span><span class="mat-tag">TI</span></div>
+  </div>
+</div>
+
+<!-- SEM 8 -->
+<div class="sem-grid" style="margin-bottom:0">
+  <div class="sl">SEM<br>8</div>
+  <div></div>
+  <div></div><div></div><div></div><div></div>
+  <div></div>
+  <!-- N: C5 -->
+  <div class="mat integ" data-id="est2" data-label="Estancia de Investigación II">
+    <div class="mat-name">Estancia de Investigación II</div>
+    <div class="mat-bot"><span class="mat-cr">10h · 10cr</span></div>
+  </div>
+  <div></div><div></div>
+  <div></div>
+  <!-- CIM: C8 -->
+  <div class="mat opt">
+    <div class="mat-name">Asig. Opt. Prof. CIM (×3)</div>
+    <div class="mat-bot"><span class="mat-cr">8h · 4cr c/u</span><span class="mat-tag">AP CIM</span></div>
+  </div>
+  <div></div>
+  <div></div>
+  <!-- CCM: C10 -->
+  <div class="mat opt">
+    <div class="mat-name">Asig. Opt. Prof. CCM (×3)</div>
+    <div class="mat-bot"><span class="mat-cr">8h · 4cr c/u</span><span class="mat-tag">AP CCM</span></div>
+  </div>
+  <div></div><div></div>
+  <div></div>
+  <!-- TI: C13 -->
+  <div class="mat opt">
+    <div class="mat-name">Asig. Opt. Prof. TI (×3)</div>
+    <div class="mat-bot"><span class="mat-cr">8-10h · 4cr c/u</span><span class="mat-tag">AP TI</span></div>
+  </div>
+  <div></div>
+</div>
+
+</div><!-- curr -->
+
+<div class="cr-row">
+  <span style="color:#1A7A42"><span class="cr-n">372</span>cr CIM</span>
+  <span style="color:#1040A0"><span class="cr-n">372</span>cr CCM</span>
+  <span style="color:#8A6A00"><span class="cr-n">372</span>cr TI</span>
+</div>
+
+<script>
+const PREREQS = {
+  calcv :['calc1'], vc   :['calc1'], prob :['alg'],
+  qo    :['qi'],    ed1  :['vc','calcv'], mec:['calc1'],
+  ed2   :['ed1','vc'], em:['mec'], circ:['mec'],
+  dsf   :['ed2','mec'], lab2:['lab1'],
+  icm   :['qo'],    fes  :['icm'], pmec :['icm'],
+  poo   :['prog1'], edd  :['poo'], matd :['alg','prog1'],
+  lfa   :['matd'],  daa  :['edd'], isw  :['edd'],
+  mpoli :['ingmat'],pem  :['em'],
+  mcer  :['mpoli'], carat:['pmec'],
+  bd    :['daa'],   ia   :['isw'],
+  est   :['lab2'],  io   :['lab2'], ingmat:['icm'],
+  adm   :['est'],   elec :['em'],  plan  :['est'],
+  biom  :['mcer','carat'], mdat:['bd','ia'],
+  cad   :['elec','plan'],  inst:['circ','elec'],
+  est1  :['adm'],   est2 :['est1'],
+};
+
+const COLS = {
+  tronco:'#999999', integ:'#C05800',
+  cim   :'#1A7A42', ccm  :'#1040A0',
+  ti    :'#B89000', opt  :'#7040D0',
+};
+function colOf(el){
+  for(const [k,v] of Object.entries(COLS)) if(el.classList.contains(k)) return [k,v];
+  return ['tronco','#999'];
+}
+
+function drawLines(){
+  const curr = document.getElementById('curr');
+  const sv   = document.getElementById('sv');
+  const cr   = curr.getBoundingClientRect();
+  sv.setAttribute('width',  curr.scrollWidth);
+  sv.setAttribute('height', curr.scrollHeight);
+  sv.setAttribute('viewBox',`0 0 ${curr.scrollWidth} ${curr.scrollHeight}`);
+
+  // markers
+  let defs='<defs>';
+  for(const [k,c] of Object.entries(COLS)){
+    defs+=`<marker id="mk-${k}" markerWidth="8" markerHeight="8"
+      refX="7" refY="4" orient="auto">
+      <polygon points="0 1,8 4,0 7" fill="${c}" opacity="0.85"/>
+    </marker>`;
+  }
+  defs+='</defs>';
+  sv.innerHTML=defs;
+
+  // Build node map
+  const nm={};
+  document.querySelectorAll('[data-id]').forEach(el=>{
+    const r=el.getBoundingClientRect();
+    nm[el.dataset.id]={
+      el,
+      cx    : r.left - cr.left + r.width/2,
+      top   : r.top  - cr.top,
+      bottom: r.bottom - cr.top,
+    };
+  });
+
+  // Collect connections
+  const conns=[];
+  Object.entries(PREREQS).forEach(([to,froms])=>{
+    const b=nm[to]; if(!b) return;
+    froms.forEach(from=>{
+      const a=nm[from]; if(!a) return;
+      conns.push({from,to,a,b});
+    });
+  });
+
+  // Group by gap zone: key = (srcBottom_rounded, dstTop_rounded)
+  const zones={};
+  conns.forEach(c=>{
+    const k=`${Math.round(c.a.bottom/2)*2}_${Math.round(c.b.top/2)*2}`;
+    if(!zones[k]) zones[k]=[];
+    zones[k].push(c);
+  });
+
+  // Sort each zone: straighter (smaller |dx|) lines get lower lane indices
+  Object.values(zones).forEach(zone=>{
+    zone.sort((p,q)=>Math.abs(p.a.cx-p.b.cx)-Math.abs(q.a.cx-q.b.cx));
+    zone.forEach((c,i)=>{ c.laneIdx=i; c.laneTotal=zone.length; });
+  });
+
+  // Draw
+  conns.forEach(({a,b,laneIdx,laneTotal})=>{
+    const [ck,col]=colOf(b.el);
+
+    const zoneH   = b.top - a.bottom;        // total gap height
+    const margin  = Math.max(8, zoneH*0.12); // top & bottom margin
+    const usable  = zoneH - 2*margin;
+    const step    = laneTotal>1 ? usable/(laneTotal-1) : 0;
+    const laneY   = a.bottom + margin + laneIdx*step; // unique Y per lane
+
+    // X: spread exit/entry so parallel lines don't share exact same point
+    const xSpan   = Math.min(14,(laneTotal-1)*7);
+    const xOff    = laneTotal>1 ? (laneIdx/(laneTotal-1)-0.5)*xSpan : 0;
+    const x1=a.cx+xOff, y1=a.bottom+1;
+    const x2=b.cx+xOff, y2=b.top-1;
+
+    const R=5, sameCol=Math.abs(x1-x2)<3;
+    let d;
+
+    if(sameCol){
+      d=`M${x1},${y1} L${x2},${y2}`;
+    } else {
+      const rs=x2>=x1?R:-R;
+      const ok=laneY-y1>R && y2-laneY>R;
+      if(!ok){
+        d=`M${x1},${y1} L${x1},${laneY} L${x2},${laneY} L${x2},${y2}`;
+      } else {
+        d=`M${x1},${y1} L${x1},${laneY-R} Q${x1},${laneY} ${x1+rs},${laneY} `+
+          `L${x2-rs},${laneY} Q${x2},${laneY} ${x2},${laneY+R} L${x2},${y2}`;
+      }
+    }
+
+    const p=document.createElementNS('http://www.w3.org/2000/svg','path');
+    p.setAttribute('d',d);
+    p.setAttribute('stroke',col);
+    p.setAttribute('stroke-width','2');
+    p.setAttribute('opacity','0.5');
+    p.setAttribute('fill','none');
+    p.setAttribute('stroke-linecap','round');
+    p.setAttribute('stroke-linejoin','round');
+    p.setAttribute('marker-end',`url(#mk-${ck})`);
+    sv.appendChild(p);
+  });
+}
+
+// Tooltip
+const tip=document.getElementById('tip');
+document.querySelectorAll('[data-id]').forEach(el=>{
+  el.addEventListener('mouseenter',e=>{
+    const id=el.dataset.id,label=el.dataset.label;
+    const pres=PREREQS[id]||[];
+    const habs=Object.entries(PREREQS).filter(([,f])=>f.includes(id)).map(([t])=>t);
+    let h=`<strong>${label||id}</strong>`;
+    if(pres.length) h+=`<div class="tq">← Requiere: ${pres.join(', ')}</div>`;
+    if(habs.length) h+=`<div class="th">→ Habilita: ${habs.join(', ')}</div>`;
+    tip.innerHTML=h; tip.style.display='block';
+  });
+  el.addEventListener('mousemove',e=>{
+    tip.style.left=(e.clientX+14)+'px'; tip.style.top=(e.clientY+14)+'px';
+  });
+  el.addEventListener('mouseleave',()=>tip.style.display='none');
+});
+
+window.addEventListener('load',  ()=>setTimeout(drawLines,250));
+window.addEventListener('resize', ()=>setTimeout(drawLines,100));
+</script>
+</body>
+</html>

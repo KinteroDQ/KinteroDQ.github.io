@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Árbol de Habilidades — Constelaciones</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#02020a;font-family:'Georgia',serif}
+.poster{width:1400px;margin:0 auto;padding:44px 52px 56px;background:#02020a}
+header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid rgba(255,255,255,0.08);padding-bottom:24px;margin-bottom:28px}
+.h1{font-size:34px;font-weight:300;letter-spacing:3px;color:#f0eeff;margin-bottom:6px}
+.h1 strong{font-weight:700}
+.sub{font-size:10px;color:#444;letter-spacing:2px;text-transform:uppercase}
+.badges{display:flex;flex-wrap:wrap;gap:5px;justify-content:flex-end;max-width:420px}
+.badge{padding:3px 10px;border-radius:20px;font-size:10px;letter-spacing:.3px;border:1px solid}
+.main{display:grid;grid-template-columns:1fr 290px;gap:24px}
+.cw{border:1px solid rgba(255,255,255,0.04);border-radius:14px;overflow:hidden}
+.cl{font-size:8px;letter-spacing:2px;text-transform:uppercase;color:#2a2a2a;padding:8px 12px 0}
+canvas{display:block;width:100%}
+.panel{display:flex;flex-direction:column;gap:14px}
+.card{border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:14px 16px}
+.ct{font-size:8px;letter-spacing:1.5px;text-transform:uppercase;color:#3a3a3a;margin-bottom:10px}
+.li{display:flex;align-items:flex-start;gap:8px;margin-bottom:8px;font-size:11px;color:#aaa;line-height:1.4}
+.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:3px}
+.sub2{font-size:9px;color:#3a3a3a;margin-top:1px}
+.chain{font-size:9px;color:#444;line-height:1.9;border-left:1px solid rgba(255,255,255,0.06);padding-left:9px;margin-bottom:6px}
+.chain span{color:#8B8BE8}
+.ca{color:#2a2a2a;margin:0 2px}
+.semrow{display:flex;align-items:center;gap:7px;margin-bottom:6px;font-size:10px;color:#777}
+.li[data-group],.li[data-venn]{cursor:pointer;border-radius:6px;padding:3px 5px;margin:-3px -5px;transition:background .15s,opacity .15s}
+.li[data-group]:hover,.li[data-venn]:hover{background:rgba(255,255,255,0.05)}
+.li[data-group].sel,.li[data-venn].sel{background:rgba(255,255,255,0.08)}
+.li[data-group].dim,.li[data-venn].dim{opacity:.25}
+.sd{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:600;flex-shrink:0;border:1px solid}
+footer{margin-top:24px;border-top:1px solid rgba(255,255,255,0.04);padding-top:14px;display:flex;justify-content:space-between;font-size:9px;color:#2a2a2a}
+.sembar{display:flex;align-items:center;gap:7px;margin-bottom:20px;padding:9px 14px;border:1px solid rgba(255,255,255,0.05);border-radius:10px;background:rgba(255,255,255,0.01)}
+.sembar-lbl{font-size:8px;letter-spacing:2px;text-transform:uppercase;color:#333;margin-right:6px;flex-shrink:0}
+.sembtn{background:transparent;border:1px solid var(--b);color:var(--c);border-radius:6px;padding:4px 13px;font-size:11px;font-family:'Georgia',serif;cursor:pointer;transition:background .15s,opacity .15s,border-color .15s;letter-spacing:.5px;line-height:1.4}
+.sembtn:hover{background:rgba(255,255,255,0.05)}
+.sembtn.sel{background:rgba(255,255,255,0.09);border-color:var(--c);color:var(--c)}
+.sembtn.dim{opacity:.25}
+</style>
+</head>
+<body>
+<div class="poster">
+<header>
+  <div>
+    <div class="h1"><strong>Árbol de Habilidades</strong></div>
+    <div class="sub">UNAM · ENES Juriquilla · Licenciatura en Tecnología · 68 materias · 8 semestres + AP</div>
+  </div>
+  <div class="badges">
+    <span class="badge" style="color:#fff;border-color:#666">Tronco Común</span>
+    <span class="badge" style="color:#FF8C00;border-color:#c46a00">Núcleo Integrador</span>
+    <span class="badge" style="color:#7aff9a;border-color:#3DBD6E">CIM: Materiales</span>
+    <span class="badge" style="color:#7AACFF;border-color:#3A7FD5">CCM: Comp. y Mat.</span>
+    <span class="badge" style="color:#FFE566;border-color:#b89200">TI: Tec. Industrial</span>
+    <span class="badge" style="color:#C4A0FF;border-color:#8B5CF6">Optativas (AP)</span>
+    <span class="badge" style="color:#7AACFF;border-color:#3A7FD5">Matemáticas</span>
+    <span class="badge" style="color:#FF8080;border-color:#E03E3E">Física</span>
+    <span class="badge" style="color:#FF8C00;border-color:#c46a00">Química</span>
+    <span class="badge" style="color:#7aff9a;border-color:#3DBD6E">Biología</span>
+  </div>
+</header>
+<div class="sembar">
+  <span class="sembar-lbl">Semestre</span>
+  <button class="sembtn" data-sem="1" style="--c:#999;--b:#484848">1</button>
+  <button class="sembtn" data-sem="2" style="--c:#999;--b:#484848">2</button>
+  <button class="sembtn" data-sem="3" style="--c:#5dcaa5;--b:#0f6e56">3</button>
+  <button class="sembtn" data-sem="4" style="--c:#5dcaa5;--b:#0f6e56">4</button>
+  <button class="sembtn" data-sem="5" style="--c:#FFE566;--b:#b89200">5</button>
+  <button class="sembtn" data-sem="6" style="--c:#FFE566;--b:#b89200">6</button>
+  <button class="sembtn" data-sem="7" style="--c:#C4A0FF;--b:#8B5CF6">7</button>
+  <button class="sembtn" data-sem="8" style="--c:#C4A0FF;--b:#8B5CF6">8</button>
+  <button class="sembtn" data-sem="9" style="--c:#C4A0FF;--b:#8B5CF6">AP</button>
+</div>
+<div class="main">
+  <div class="cw">
+    <div class="cl">mapa radial de prerrequisitos · venn de ciencias base · constelaciones</div>
+    <canvas id="c"></canvas>
+  </div>
+  <div class="panel">
+    <div class="card" id="spec-card">
+      <div class="ct">Líneas de especialización</div>
+      <div class="li" data-group="tronco"><div class="dot" style="background:#fff"></div><div><div>Tronco Común</div><div class="sub2">Base universal, neutro</div></div></div>
+      <div class="li" data-group="integ"><div class="dot" style="background:#FF8C00"></div><div><div>Núcleo Integrador</div><div class="sub2">Energía y conexión cuant.+cual.</div></div></div>
+      <div class="li" data-group="mat"><div class="dot" style="background:#3DBD6E"></div><div><div>CIM: Ciencia e Ing. Materiales</div><div class="sub2">Naturaleza, síntesis orgánica</div></div></div>
+      <div class="li" data-group="comp"><div class="dot" style="background:#3A7FD5"></div><div><div>CCM: Comp. y Matemáticas</div><div class="sub2">Lógica, precisión tecnológica</div></div></div>
+      <div class="li" data-group="ind"><div class="dot" style="background:#F5C400"></div><div><div>TI: Tecnología Industrial</div><div class="sub2">Activación, procesos, manufactura</div></div></div>
+      <div class="li" data-group="optativa"><div class="dot" style="background:#8B5CF6"></div><div><div>Optativas (AP)</div><div class="sub2">Profundización terminal, abstracto</div></div></div>
+    </div>
+    <div class="card" id="venn-card">
+      <div class="ct">Diagrama de Venn — Ciencias base</div>
+      <div class="li" data-venn="mate"><div class="dot" style="background:#3A7FD5"></div><div>Matemáticas ↖<div class="sub2">Mismo azul que CCM — parentesco lógico</div></div></div>
+      <div class="li" data-venn="fisica"><div class="dot" style="background:#E03E3E"></div><div>Física ↗<div class="sub2">Rojo — máximo impacto, energía experimental</div></div></div>
+      <div class="li" data-venn="quimica"><div class="dot" style="background:#FF8C00"></div><div>Química ↘<div class="sub2">Mismo naranja que Núcleo — transformación</div></div></div>
+      <div class="li" data-venn="bio"><div class="dot" style="background:#3DBD6E"></div><div>Biología ↙<div class="sub2">Mismo verde que CIM — mundo natural</div></div></div>
+      <div style="font-size:9px;color:#333;margin-top:8px;border-top:1px solid rgba(255,255,255,0.04);padding-top:8px;line-height:1.6">
+        ★ Centro rosa = Tecnología<br>núcleo cuantitativo ∩ cualitativo.<br>
+        Posición angular de cada materia según su intersección en el Venn.
+        Núcleo Integrador (naranja) al interior de cada anillo.
+      </div>
+    </div>
+    <div class="card">
+      <div class="ct">Estructura por semestre</div>
+      <div class="semrow"><div class="sd" style="color:#bbb;border-color:#555;background:rgba(255,255,255,0.08)">1</div>Ciencias y Matemáticas base<span style="margin-left:auto;color:#333;font-size:8px">7</span></div>
+      <div class="semrow"><div class="sd" style="color:#bbb;border-color:#555;background:rgba(255,255,255,0.08)">2</div>Cálculo avanzado y Programación<span style="margin-left:auto;color:#333;font-size:8px">7</span></div>
+      <div class="semrow"><div class="sd" style="color:#5dcaa5;border-color:#0f6e56;background:rgba(29,158,117,0.12)">3</div>Especialización inicia (3 líneas)<span style="margin-left:auto;color:#333;font-size:8px">8</span></div>
+      <div class="semrow"><div class="sd" style="color:#5dcaa5;border-color:#0f6e56;background:rgba(29,158,117,0.12)">4</div>Especialización diverge<span style="margin-left:auto;color:#333;font-size:8px">9</span></div>
+      <div class="semrow"><div class="sd" style="color:#FFE566;border-color:#b89200;background:rgba(245,196,0,0.1)">5</div>Ramas en pleno desarrollo<span style="margin-left:auto;color:#333;font-size:8px">13</span></div>
+      <div class="semrow"><div class="sd" style="color:#FFE566;border-color:#b89200;background:rgba(245,196,0,0.1)">6</div>Profundización y gestión<span style="margin-left:auto;color:#333;font-size:8px">14</span></div>
+      <div class="semrow"><div class="sd" style="color:#C4A0FF;border-color:#8B5CF6;background:rgba(139,92,246,0.12)">7</div>Investigación aplicada<span style="margin-left:auto;color:#333;font-size:8px">6</span></div>
+      <div class="semrow"><div class="sd" style="color:#C4A0FF;border-color:#8B5CF6;background:rgba(139,92,246,0.12)">8</div>Estancia terminal<span style="margin-left:auto;color:#333;font-size:8px">1</span></div>
+      <div class="semrow"><div class="sd" style="color:#C4A0FF;border-color:#8B5CF6;background:rgba(139,92,246,0.18)">AP</div>Áreas de profundización<span style="margin-left:auto;color:#333;font-size:8px">3</span></div>
+    </div>
+    <div class="card">
+      <div class="ct">Cadenas de prerrequisitos</div>
+      <div class="chain"><span>Cálculo I</span><span class="ca">→</span><span>Var. Compleja</span><span class="ca">→</span><span>Ec. Dif. I</span><span class="ca">→</span><span>Ec. Dif. II</span></div>
+      <div class="chain"><span>Quím. Inorg.</span><span class="ca">→</span><span>Quím. Org.</span><span class="ca">→</span><span>Intro Mat.</span><span class="ca">→</span><span>Ing. Mat.</span></div>
+      <div class="chain"><span>Fund. Prog.</span><span class="ca">→</span><span>POO</span><span class="ca">→</span><span>Estructuras</span><span class="ca">→</span><span>Algoritmos</span><span class="ca">→</span><span>IA</span></div>
+      <div class="chain"><span>Lab. Tec. I</span><span class="ca">→</span><span>Lab. Tec. II</span><span class="ca">→</span><span>Procesos</span><span class="ca">→</span><span>Diseño Prod.</span></div>
+      <div class="chain"><span>Ing. Mat.</span><span class="ca">→</span><span>Metálicos</span><span class="ca">→</span><span>Compuestos</span><span class="ca">→</span><span>Biomateriales</span><span class="ca">→</span><span>AP I</span></div>
+    </div>
+  </div>
+</div>
+<footer>
+  <div>Líneas = prerrequisito directo · Posición angular = intersección en el Venn de ciencias · Anillo interior naranja = Núcleo Integrador</div>
+  <div style="text-align:right;color:#534ab7;font-size:10px">UNAM · ENES Juriquilla · Licenciatura en Tecnología</div>
+</footer>
+</div>
+
+<script>
+const NODE_POS = {
+  'calc1':{x:3484.9,y:3817.4,ang:-2.9845,r:400,sem:1,g:'tronco',venn:'mate',label:"C\u00e1lculo Dif. e Integral"},
+  'alg':{x:3817.4,y:3484.9,ang:-1.7279,r:400,sem:1,g:'tronco',venn:'mate',label:"\u00c1lgebra Lineal"},
+  'bio1':{x:3597.2,y:4162.8,ang:2.3562,r:400,sem:1,g:'tronco',venn:'bio',label:"Biolog\u00eda General"},
+  'qi':{x:4162.8,y:4162.8,ang:0.7854,r:400,sem:1,g:'tronco',venn:'quimica',label:"Qu\u00edmica Inorg\u00e1nica"},
+  'calcv':{x:3129.4,y:3761.1,ang:-2.9845,r:760,sem:2,g:'tronco',venn:'mate',label:"C\u00e1lculo Vectorial"},
+  'vc':{x:3342.6,y:3342.6,ang:-2.3562,r:760,sem:2,g:'tronco',venn:'mate',label:"Variable Compleja"},
+  'prob':{x:3761.1,y:3129.4,ang:-1.7279,r:760,sem:2,g:'tronco',venn:'mate',label:"Probabilidad y Estad\u00edstica"},
+  'qo':{x:4417.4,y:4417.4,ang:0.7854,r:760,sem:2,g:'tronco',venn:'quimica',label:"Qu\u00edmica Org\u00e1nica"},
+  'prog1':{x:3880.0,y:3120.0,ang:-1.5708,r:760,sem:2,g:'tronco',venn:'mate_fisica',label:"Fund. Programaci\u00f3n"},
+  'ed1':{x:3088.0,y:3088.0,ang:-2.3562,r:1120,sem:3,g:'tronco',venn:'mate',label:"Ec. Diferenciales I"},
+  'mec':{x:4672.0,y:3088.0,ang:-0.7854,r:1120,sem:3,g:'tronco',venn:'fisica',label:"Mec\u00e1nica Cl\u00e1sica"},
+  'termo':{x:4859.6,y:3337.0,ang:-0.5061,r:1120,sem:3,g:'tronco',venn:'fisica_quimica',label:"Termodin\u00e1mica"},
+  'icm':{x:4859.6,y:4423.0,ang:0.5061,r:1120,sem:3,g:'mat',venn:'fisica_quimica',label:"Intro Ciencia Materiales"},
+  'rec':{x:3880.0,y:5000.0,ang:1.5708,r:1120,sem:3,g:'tronco',venn:'quimica_bio',label:"Recursos Naturales"},
+  'poo':{x:3337.0,y:2900.4,ang:-2.0769,r:1120,sem:3,g:'comp',venn:'mate_fisica',label:"Prog. Orientada a Objetos"},
+  'dibtec':{x:4423.0,y:2900.4,ang:-1.0647,r:1120,sem:3,g:'ind',venn:'mate_fisica',label:"Dibujo T\u00e9cnico"},
+  'ed2':{x:2388.6,y:3643.8,ang:-2.9845,r:1510,sem:4,g:'tronco',venn:'mate',label:"Ec. Diferenciales II"},
+  'matd':{x:3643.8,y:2388.6,ang:-1.7279,r:1510,sem:4,g:'comp',venn:'mate',label:"Matem\u00e1ticas Discretas"},
+  'em':{x:4116.2,y:2388.6,ang:-1.4137,r:1510,sem:4,g:'tronco',venn:'fisica',label:"Electromagnetismo"},
+  'circ':{x:5371.4,y:3643.8,ang:-0.1571,r:1510,sem:4,g:'tronco',venn:'fisica',label:"Circuitos El\u00e9ctricos"},
+  'fes':{x:5200.7,y:3147.9,ang:-0.5061,r:1510,sem:4,g:'mat',venn:'fisica_quimica',label:"F\u00edsica Estado S\u00f3lido"},
+  'pmec':{x:5390.0,y:3880.0,ang:0.0,r:1510,sem:4,g:'mat',venn:'fisica_quimica',label:"Prop. Mec\u00e1nicas Mat."},
+  'ingmat':{x:5200.7,y:4612.1,ang:0.5061,r:1510,sem:4,g:'ind',venn:'fisica_quimica',label:"Ingenier\u00eda de Materiales"},
+  'edd':{x:3880.0,y:2370.0,ang:-1.5708,r:1510,sem:4,g:'comp',venn:'mate_fisica',label:"Estructuras de Datos"},
+  'dsf':{x:2944.3,y:2192.0,ang:-2.0769,r:1930,sem:5,g:'tronco',venn:'mate_fisica',label:"Din\u00e1mica Sist. F\u00edsicos"},
+  'daa':{x:3880.0,y:1950.0,ang:-1.5708,r:1930,sem:5,g:'comp',venn:'mate_fisica',label:"Dise\u00f1o An\u00e1lisis Algoritmos"},
+  'isw':{x:4815.7,y:2192.0,ang:-1.0647,r:1930,sem:5,g:'comp',venn:'mate_fisica',label:"Ingenier\u00eda de Software"},
+  'mpoli':{x:3880.0,y:5810.0,ang:1.5708,r:1930,sem:5,g:'mat',venn:'quimica_bio',label:"Mat. Polim\u00e9ricos"},
+  'pem':{x:5568.0,y:2944.3,ang:-0.5061,r:1930,sem:5,g:'mat',venn:'fisica_quimica',label:"Prop. El\u00e9ctricas y Magn\u00e9ticas"},
+  'proc':{x:5782.6,y:3555.9,ang:-0.1687,r:1930,sem:5,g:'mat',venn:'fisica_quimica',label:"Procesos de Manufactura"},
+  'mmetal':{x:5782.6,y:4204.1,ang:0.1687,r:1930,sem:5,g:'mat',venn:'fisica_quimica',label:"Mat. Met\u00e1licos"},
+  'mecsol':{x:5568.0,y:4815.7,ang:0.5061,r:1930,sem:5,g:'ind',venn:'fisica_quimica',label:"Mec\u00e1nica de S\u00f3lidos"},
+  'redes':{x:5244.7,y:2515.3,ang:-0.7854,r:1930,sem:5,g:'comp',venn:'fisica',label:"Redes y Telecomunicaciones"},
+  'lfa':{x:1973.8,y:3578.1,ang:-2.9845,r:1930,sem:5,g:'comp',venn:'mate',label:"Lenguajes Formales y Aut\u00f3matas"},
+  'io':{x:3578.1,y:1973.8,ang:-1.7279,r:1930,sem:5,g:'ind',venn:'mate',label:"Investigaci\u00f3n de Operaciones"},
+  'est':{x:1950.0,y:3880.0,ang:3.1416,r:1930,sem:5,g:'ind',venn:'mate_bio',label:"Estudio del Trabajo"},
+  'mcer':{x:5926.6,y:2745.5,ang:-0.5061,r:2340,sem:6,g:'mat',venn:'fisica_quimica',label:"Mat. Cer\u00e1micos"},
+  'carat':{x:6145.5,y:3294.1,ang:-0.2531,r:2340,sem:6,g:'mat',venn:'fisica_quimica',label:"Caracterizaci\u00f3n Materiales"},
+  'mcomp':{x:6220.0,y:3880.0,ang:0.0,r:2340,sem:6,g:'mat',venn:'fisica_quimica',label:"Mat. Compuestos"},
+  'nano':{x:6145.5,y:4465.9,ang:0.2531,r:2340,sem:6,g:'mat',venn:'fisica_quimica',label:"Nanoestructuras"},
+  'disp':{x:5926.6,y:5014.5,ang:0.5061,r:2340,sem:6,g:'ind',venn:'fisica_quimica',label:"Dise\u00f1o del Producto"},
+  'pp':{x:2745.5,y:1833.4,ang:-2.0769,r:2340,sem:6,g:'comp',venn:'mate_fisica',label:"Programaci\u00f3n Paralela"},
+  'bd':{x:3880.0,y:1540.0,ang:-1.5708,r:2340,sem:6,g:'comp',venn:'mate_fisica',label:"Bases de Datos"},
+  'ia':{x:5014.5,y:1833.4,ang:-1.0647,r:2340,sem:6,g:'comp',venn:'mate_fisica',label:"Inteligencia Artificial"},
+  'iot':{x:4246.1,y:1568.8,ang:-1.4137,r:2340,sem:6,g:'comp',venn:'fisica',label:"Internet de las Cosas"},
+  'elec':{x:6191.2,y:3513.9,ang:-0.1571,r:2340,sem:6,g:'ind',venn:'fisica',label:"Electr\u00f3nica Industrial"},
+  'cost':{x:2225.4,y:2225.4,ang:-2.3562,r:2340,sem:6,g:'ind',venn:'mate',label:"Costos e Ing. Econ\u00f3mica"},
+  'plan':{x:1540.0,y:3880.0,ang:3.1416,r:2340,sem:6,g:'ind',venn:'mate_bio',label:"Planeaci\u00f3n y Control Prod."},
+  'biom':{x:3880.0,y:6580.0,ang:1.5708,r:2700,sem:7,g:'mat',venn:'quimica_bio',label:"Biomateriales"},
+  'mdat':{x:2571.0,y:1518.5,ang:-2.0769,r:2700,sem:7,g:'comp',venn:'mate_fisica',label:"Miner\u00eda de Datos"},
+  'cad':{x:5189.0,y:1518.5,ang:-1.0647,r:2700,sem:7,g:'ind',venn:'mate_fisica',label:"Dis. y Manuf. Asist. Comp."},
+  'inst':{x:5789.2,y:1970.8,ang:-0.7854,r:2700,sem:7,g:'ind',venn:'fisica',label:"Instrumentaci\u00f3n y Medici\u00f3n"},
+  'op1':{x:7180.0,y:3880.0,ang:0.0,r:3300,sem:9,g:'mat',venn:'fisica_quimica',label:"AP I: Ciencia e Ing. Materiales"},
+  'op2':{x:3880.0,y:580.0,ang:-1.5708,r:3300,sem:9,g:'comp',venn:'mate_fisica',label:"AP II: Comp. y Matem\u00e1ticas"},
+  'op3':{x:580.0,y:3880.0,ang:3.1416,r:3300,sem:9,g:'ind',venn:'mate_bio',label:"AP III: Tecnolog\u00eda Industrial"},
+  'com':{x:3714.6,y:3850.8,ang:-2.9671,r:168.0,sem:1,g:'integ',venn:'all',label:"Estrategias Comunicaci\u00f3n"},
+  'gen1':{x:4037.9,y:3822.5,ang:-0.3491,r:168.0,sem:1,g:'integ',venn:'all',label:"Temas Selectos G\u00e9nero I"},
+  'inv':{x:3809.0,y:4032.3,ang:2.0071,r:168.0,sem:1,g:'integ',venn:'all',label:"Fund. Investigaci\u00f3n"},
+  'gen2':{x:3580.1,y:3989.2,ang:2.7925,r:319.2,sem:2,g:'integ',venn:'all',label:"Temas Selectos G\u00e9nero II"},
+  'lab1':{x:4194.4,y:3935.4,ang:0.1745,r:319.2,sem:2,g:'integ',venn:'all',label:"Lab. Tecnol\u00f3gico I"},
+  'orig':{x:3438.0,y:3719.1,ang:-2.7925,r:470.4,sem:3,g:'integ',venn:'all',label:"Or\u00edgenes Ciencia Nacional"},
+  'lab2':{x:3267.4,y:4044.1,ang:2.8798,r:634.2,sem:4,g:'integ',venn:'all',label:"Lab. Tecnol\u00f3gico II"},
+  'ense':{x:3072.5,y:3809.4,ang:-3.0543,r:810.6,sem:5,g:'integ',venn:'all',label:"Ense\u00f1anza Eficiente"},
+  'adm':{x:2930.7,y:3625.6,ang:-2.8798,r:982.8,sem:6,g:'integ',venn:'all',label:"Adm. Proyectos e Innovaci\u00f3n"},
+  'etica':{x:4829.3,y:4134.4,ang:0.2618,r:982.8,sem:6,g:'integ',venn:'all',label:"\u00c9tica Profesional"},
+  'est1':{x:2852.2,y:3400.8,ang:-2.7053,r:1134.0,sem:7,g:'integ',venn:'all',label:"Estancia Investigaci\u00f3n I"},
+  'opteco':{x:4996.8,y:4076.9,ang:0.1745,r:1134.0,sem:7,g:'integ',venn:'all',label:"Optativa Econ\u00f3mico-Admin."},
+  'est2':{x:2785.2,y:3247.9,ang:-2.618,r:1264.2,sem:8,g:'integ',venn:'all',label:"Estancia Investigaci\u00f3n II"}
+};
+
+const PREREQS = [
+  ['calc1','calcv'],
+  ['calc1','vc'],
+  ['alg','calcv'],
+  ['alg','prob'],
+  ['vc','ed1'],
+  ['calcv','ed1'],
+  ['calc1','mec'],
+  ['qi','qo'],
+  ['bio1','rec'],
+  ['lab1','lab2'],
+  ['prog1','poo'],
+  ['ed1','ed2'],
+  ['vc','ed2'],
+  ['mec','em'],
+  ['mec','circ'],
+  ['mec','dsf'],
+  ['icm','fes'],
+  ['icm','ingmat'],
+  ['icm','pmec'],
+  ['poo','edd'],
+  ['alg','matd'],
+  ['prog1','matd'],
+  ['ed2','dsf'],
+  ['em','pem'],
+  ['ingmat','mmetal'],
+  ['ingmat','mpoli'],
+  ['pmec','mecsol'],
+  ['edd','daa'],
+  ['edd','isw'],
+  ['matd','lfa'],
+  ['prob','redes'],
+  ['lab2','est'],
+  ['lab2','io'],
+  ['lab2','proc'],
+  ['daa','bd'],
+  ['isw','ia'],
+  ['lfa','pp'],
+  ['redes','iot'],
+  ['mmetal','mcer'],
+  ['mpoli','mcomp'],
+  ['fes','nano'],
+  ['pmec','carat'],
+  ['est','adm'],
+  ['io','cost'],
+  ['proc','disp'],
+  ['em','elec'],
+  ['est','plan'],
+  ['bd','mdat'],
+  ['ia','mdat'],
+  ['mcomp','biom'],
+  ['nano','biom'],
+  ['elec','cad'],
+  ['plan','cad'],
+  ['circ','inst'],
+  ['elec','inst'],
+  ['est1','est2'],
+  ['biom','op1'],
+  ['mdat','op2'],
+  ['cad','op3'],
+  ['est2','op1'],
+  ['est2','op2'],
+  ['est2','op3']
+];
+
+const STAR_COLORS = {
+  tronco:  {core:'#FFFFFF', glow:'rgba(255,255,255,', text:'#FFFFFF'},
+  integ:   {core:'#FF8C00', glow:'rgba(255,140,0,',   text:'#FFD580'},
+  mat:     {core:'#3DBD6E', glow:'rgba(61,189,110,',  text:'#A8F0C0'},
+  comp:    {core:'#3A7FD5', glow:'rgba(58,127,213,',  text:'#A8CFFF'},
+  ind:     {core:'#F5C400', glow:'rgba(245,196,0,',   text:'#FFF0A0'},
+  optativa:{core:'#8B5CF6', glow:'rgba(139,92,246,',  text:'#D4BBFF'},
+};
+
+const ringRadii = [0, 400, 760, 1120, 1510, 1930, 2340, 2700, 3010, 3300];
+const SIZE = 7760;
+const CX = 3880, CY = 3880;
+const NODE_R = 10;
+const LABEL_DIST = 42;
+
+let activeGroups = new Set();
+let activeSems = new Set();
+let activeVenn = null;
+let activeNode = null;
+let connectedNodes = new Set();
+
+function updateConnected(){
+  connectedNodes.clear();
+  if(!activeNode) return;
+  PREREQS.forEach(([from,to]) => {
+    if(from === activeNode) connectedNodes.add(to);
+    if(to === activeNode) connectedNodes.add(from);
+  });
+}
+
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+canvas.width = SIZE; canvas.height = SIZE;
+canvas.style.width = '100%';
+
+function toRad(d){ return d*Math.PI/180; }
+
+// Background stars
+function drawStarField(){
+  for(let i=0;i<1400;i++){
+    const x=((Math.sin(i*7.3+1)*0.5+0.5)*9301*SIZE)%SIZE;
+    const y=((Math.sin(i*3.7+2)*0.5+0.5)*7919*SIZE)%SIZE;
+    const sz=Math.abs(Math.sin(i*11.1))*1.6+0.2;
+    const op=Math.abs(Math.sin(i*5.9))*0.15+0.02;
+    ctx.beginPath(); ctx.arc(Math.abs(x),Math.abs(y),sz,0,Math.PI*2);
+    ctx.fillStyle=`rgba(255,255,255,${op})`; ctx.fill();
+  }
+}
+
+// Venn rings
+function drawVenn(){
+  const vr = ringRadii[9]+320;
+  const vd = vr*0.32;
+  const cfg = [
+    {color:'#3A7FD5', angle:-135, label:'Matemáticas', key:'mate'},
+    {color:'#E03E3E', angle:-45,  label:'Física',       key:'fisica'},
+    {color:'#FF8C00', angle:45,   label:'Química',      key:'quimica'},
+    {color:'#3DBD6E', angle:135,  label:'Biología',     key:'bio'},
+  ];
+  cfg.forEach(({color,angle,label,key}) => {
+    const dimmed = activeVenn && key !== activeVenn;
+    const ax=CX+Math.cos(toRad(angle))*vd;
+    const ay=CY+Math.sin(toRad(angle))*vd;
+    ctx.beginPath(); ctx.arc(ax,ay,vr*0.46,0,Math.PI*2);
+    ctx.strokeStyle=color; ctx.lineWidth=7;
+    ctx.globalAlpha=dimmed?0.02:0.1; ctx.stroke();
+    ctx.globalAlpha=dimmed?0.005:0.025; ctx.fillStyle=color; ctx.fill(); ctx.globalAlpha=1;
+    const lx=CX+Math.cos(toRad(angle))*(vd+vr*0.46+110);
+    const ly=CY+Math.sin(toRad(angle))*(vd+vr*0.46+110);
+    ctx.fillStyle=color; ctx.globalAlpha=dimmed?0.08:0.5;
+    ctx.font='700 44px Georgia,serif';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(label,lx,ly); ctx.globalAlpha=1;
+  });
+}
+
+// Sem rings
+function drawSemRings(){
+  for(let s=1;s<=9;s++){
+    const r=ringRadii[s];
+    ctx.beginPath(); ctx.arc(CX,CY,r,0,Math.PI*2);
+    ctx.strokeStyle=s<=8?'rgba(255,255,255,0.32)':'rgba(139,92,246,0.55)';
+    ctx.lineWidth=3; ctx.setLineDash([12,20]); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle=s<=8?'rgba(255,255,255,0.2)':'rgba(139,92,246,0.5)';
+    ctx.font='500 26px Georgia,serif';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(s<=8?`Semestre ${s}`:'Optativas',CX,CY-r+30);
+  }
+}
+
+// Constellation lines
+function drawLines(){
+  PREREQS.forEach(([from,to]) => {
+    const a=NODE_POS[from],b=NODE_POS[to];
+    if(!a||!b) return;
+    const col=STAR_COLORS[b.g]||STAR_COLORS.tronco;
+    let alpha, width;
+    if(activeNode){
+      const linked = from===activeNode || to===activeNode;
+      alpha  = linked ? 0.8 : 0.18;
+      width  = linked ? 5   : 2;
+    } else {
+      const dimmed = (activeGroups.size>0 && !activeGroups.has(b.g)) || (activeSems.size>0 && !activeSems.has(b.sem));
+      alpha = dimmed ? 0.03 : 0.18;
+      width = 2;
+    }
+    ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y);
+    ctx.strokeStyle=col.core; ctx.lineWidth=width;
+    ctx.globalAlpha=alpha; ctx.stroke(); ctx.globalAlpha=1;
+  });
+}
+
+// Draw one star
+function drawStar(n, id){
+  const col=STAR_COLORS[n.g]||STAR_COLORS.tronco;
+  const isActive    = id === activeNode;
+
+  // Decide if dimmed (only by group/sem filters, never by node selection)
+  const dimmed = (activeGroups.size>0 && !activeGroups.has(n.g)) || (activeSems.size>0 && !activeSems.has(n.sem));
+
+  if(dimmed){
+    ctx.beginPath(); ctx.arc(n.x,n.y,NODE_R*0.7,0,Math.PI*2);
+    ctx.fillStyle=col.core; ctx.globalAlpha=0.07; ctx.fill(); ctx.globalAlpha=1;
+    return;
+  }
+
+  // glow — extra grande si es la estrella activa
+  const glowR = isActive ? NODE_R*18 : NODE_R*9;
+  const g=ctx.createRadialGradient(n.x,n.y,0,n.x,n.y,glowR);
+  g.addColorStop(0,  col.glow+(isActive?'0.9)' :'0.6)'));
+  g.addColorStop(0.3,col.glow+(isActive?'0.35)':'0.2)'));
+  g.addColorStop(1,  col.glow+'0)');
+  ctx.beginPath(); ctx.arc(n.x,n.y,glowR,0,Math.PI*2);
+  ctx.fillStyle=g; ctx.fill();
+
+  // core
+  const coreR = isActive ? NODE_R*1.8 : NODE_R;
+  ctx.beginPath(); ctx.arc(n.x,n.y,coreR,0,Math.PI*2);
+  ctx.fillStyle=col.core; ctx.fill();
+
+  // sparkle
+  const sp = isActive ? NODE_R*5 : NODE_R*3;
+  ctx.strokeStyle=col.core;
+  ctx.lineWidth=isActive?2.5:1.3;
+  ctx.globalAlpha=isActive?0.85:0.5;
+  ctx.beginPath();
+  ctx.moveTo(n.x-sp,n.y); ctx.lineTo(n.x+sp,n.y);
+  ctx.moveTo(n.x,n.y-sp); ctx.lineTo(n.x,n.y+sp);
+  ctx.stroke(); ctx.globalAlpha=1;
+
+  // label
+  const lx=n.x+Math.cos(n.ang)*LABEL_DIST;
+  const ly=n.y+Math.sin(n.ang)*LABEL_DIST;
+  const rightSide=lx>=CX;
+  ctx.textAlign=rightSide?'left':'right';
+  ctx.textBaseline='middle';
+  const words=n.label.split(' ');
+  let lines=[];
+  if(words.length<=2){ lines=[n.label]; }
+  else{
+    const mid=Math.ceil(words.length/2);
+    lines=[words.slice(0,mid).join(' '),words.slice(mid).join(' ')];
+  }
+  const fs=isActive?22:19;
+  ctx.font=`${isActive?'600':'400'} ${fs}px Georgia,serif`;
+  const lh=fs*1.35;
+  const tH=lines.length*lh;
+  lines.forEach((ln,li)=>{
+    const ty=ly-tH/2+lh/2+li*lh;
+    ctx.fillStyle='rgba(2,2,10,0.85)';
+    ctx.fillText(ln,lx+1,ty+1);
+    ctx.fillStyle=col.text;
+    ctx.fillText(ln,lx,ty);
+  });
+}
+
+// Center
+function drawCenter(){
+  const g=ctx.createRadialGradient(CX,CY,0,CX,CY,180);
+  g.addColorStop(0,'rgba(212,83,126,0.65)');
+  g.addColorStop(0.5,'rgba(212,83,126,0.15)');
+  g.addColorStop(1,'rgba(212,83,126,0)');
+  ctx.beginPath(); ctx.arc(CX,CY,180,0,Math.PI*2); ctx.fillStyle=g; ctx.fill();
+  ctx.beginPath(); ctx.arc(CX,CY,28,0,Math.PI*2); ctx.fillStyle='#D4537E'; ctx.fill();
+  const sp=70; ctx.strokeStyle='#D4537E'; ctx.lineWidth=2; ctx.globalAlpha=0.4;
+  ctx.beginPath(); ctx.moveTo(CX-sp,CY); ctx.lineTo(CX+sp,CY);
+  ctx.moveTo(CX,CY-sp); ctx.lineTo(CX,CY+sp); ctx.stroke(); ctx.globalAlpha=1;
+  ctx.font='700 30px Georgia,serif'; ctx.fillStyle='#F4C0D1';
+  ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('Tecnología',CX,CY-52);
+  ctx.font='300 19px Georgia,serif'; ctx.fillStyle='#ED93B1';
+  ctx.fillText('cuant. + cual.',CX,CY+52);
+}
+
+function draw(){
+  ctx.clearRect(0,0,SIZE,SIZE);
+  ctx.fillStyle='#02020a'; ctx.fillRect(0,0,SIZE,SIZE);
+  drawStarField();
+  drawVenn();
+  drawSemRings();
+  drawLines();
+  Object.entries(NODE_POS).forEach(([id,n])=>drawStar(n,id));
+  drawCenter();
+}
+
+draw();
+
+canvas.style.cursor = 'crosshair';
+canvas.addEventListener('click', e => {
+  const rect = canvas.getBoundingClientRect();
+  const sx = SIZE / rect.width;
+  const sy = SIZE / rect.height;
+  const mx = (e.clientX - rect.left) * sx;
+  const my = (e.clientY - rect.top)  * sy;
+  const HIT = NODE_R * 14;
+  let hit = null;
+  for(const [id,n] of Object.entries(NODE_POS)){
+    const dx=n.x-mx, dy=n.y-my;
+    if(dx*dx+dy*dy < HIT*HIT){ hit=id; break; }
+  }
+  activeNode = activeNode===hit ? null : hit;
+  updateConnected();
+  draw();
+});
+
+const specLis = document.querySelectorAll('#spec-card .li[data-group]');
+const semBtns = document.querySelectorAll('.sembtn[data-sem]');
+
+const vennLis = document.querySelectorAll('#venn-card .li[data-venn]');
+
+function clearSemBtns(){ activeSems.clear(); semBtns.forEach(b=>b.classList.remove('sel','dim')); }
+function clearGroupLis(){ activeGroups.clear(); specLis.forEach(li=>li.classList.remove('sel','dim')); }
+function clearVennLis(){ vennLis.forEach(li=>li.classList.remove('sel','dim')); }
+
+specLis.forEach(el => {
+  el.addEventListener('click', () => {
+    const g = el.dataset.group;
+    if(activeGroups.has(g)) activeGroups.delete(g); else activeGroups.add(g);
+    activeVenn = null;
+    clearSemBtns(); clearVennLis();
+    specLis.forEach(li => {
+      li.classList.toggle('sel', activeGroups.has(li.dataset.group));
+      li.classList.toggle('dim', activeGroups.size > 0 && !activeGroups.has(li.dataset.group));
+    });
+    draw();
+  });
+});
+
+semBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    const s = +btn.dataset.sem;
+    if(activeSems.has(s)) activeSems.delete(s); else activeSems.add(s);
+    activeVenn = null;
+    clearGroupLis(); clearVennLis();
+    semBtns.forEach(b => {
+      b.classList.toggle('sel', activeSems.has(+b.dataset.sem));
+      b.classList.toggle('dim', activeSems.size > 0 && !activeSems.has(+b.dataset.sem));
+    });
+    draw();
+  });
+});
+
+vennLis.forEach(el => {
+  el.addEventListener('click', () => {
+    const v = el.dataset.venn;
+    activeVenn = activeVenn === v ? null : v;
+    clearGroupLis(); clearSemBtns();
+    vennLis.forEach(li => {
+      li.classList.toggle('sel', li.dataset.venn === activeVenn);
+      li.classList.toggle('dim', !!activeVenn && li.dataset.venn !== activeVenn);
+    });
+    draw();
+  });
+});
+</script>
+</body>
+</html>
