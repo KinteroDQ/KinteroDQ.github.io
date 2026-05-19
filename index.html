@@ -39,9 +39,52 @@ footer{margin-top:24px;border-top:1px solid rgba(255,255,255,0.04);padding-top:1
 .sembtn:hover{background:rgba(255,255,255,0.05)}
 .sembtn.sel{background:rgba(255,255,255,0.09);border-color:var(--c);color:var(--c)}
 .sembtn.dim{opacity:.25}
+html{overflow-y:auto}
+.skillmap-wrap{width:1400px;margin:0 auto;padding:36px 52px 0;background:#02020a;position:relative}
+.skillmap-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;flex-wrap:wrap;gap:12px}
+.skillmap-title-text{font-size:26px;font-weight:300;letter-spacing:2px;color:#f0eeff}
+.skillmap-title-text strong{font-weight:700}
+.skillmap-sub-text{font-size:9px;color:#333;letter-spacing:2px;text-transform:uppercase;margin-top:5px}
+.sm-controls{display:flex;flex-direction:column;align-items:flex-end;gap:10px}
+.sm-tabs{display:flex;gap:3px}
+.sm-tab{background:transparent;border:1px solid rgba(255,255,255,0.1);color:#444;padding:6px 20px;font-size:9px;letter-spacing:2px;text-transform:uppercase;font-family:'Georgia',serif;cursor:pointer;border-radius:6px;transition:all .18s}
+.sm-tab:hover{border-color:rgba(255,255,255,0.28);color:#999}
+.sm-tab.sel{border-color:rgba(255,255,255,0.42);color:#e0e0ff;background:rgba(255,255,255,0.07)}
+.sm-legend{display:flex;gap:16px;flex-wrap:wrap;align-items:center}
+.sm-leg-item{display:flex;align-items:center;gap:6px;font-size:9px;color:#555;letter-spacing:.5px;cursor:pointer;padding:2px 4px;border-radius:4px;transition:opacity .15s}
+.sm-leg-item:hover{opacity:.85}
+.sm-leg-item.dim{opacity:.25}
+.sm-leg-item.sel{opacity:1}
+.sm-leg-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+#sm{display:block;width:100%;border-radius:10px;border:1px solid rgba(255,255,255,0.05);margin-top:2px;cursor:crosshair}
+.sm-tip{position:absolute;background:rgba(4,4,20,0.96);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:9px 13px;font-size:9.5px;color:#aaa;pointer-events:none;display:none;max-width:210px;letter-spacing:.3px;line-height:1.7;z-index:20}
+.sm-tip b{color:#fff;font-size:10.5px;display:block;margin-bottom:3px;font-weight:600}
 </style>
 </head>
 <body>
+<div class="skillmap-wrap">
+  <div class="skillmap-head">
+    <div>
+      <div class="skillmap-title-text"><strong>Árbol de Habilidades</strong> — Plan 2219</div>
+      <div class="skillmap-sub-text">LICTEC · ENES Juriquilla · 68 materias · 8 semestres + Áreas de Profundización</div>
+    </div>
+    <div class="sm-controls">
+      <div class="sm-tabs">
+        <button class="sm-tab sel" data-smview="sem">Por Semestre</button>
+        <button class="sm-tab" data-smview="area">Por Área</button>
+      </div>
+      <div class="sm-legend">
+        <div class="sm-leg-item" data-smg="tronco"><div class="sm-leg-dot" style="background:#FFFFFF;opacity:.75"></div>Tronco Común</div>
+        <div class="sm-leg-item" data-smg="integ"><div class="sm-leg-dot" style="background:#FF8C00"></div>Núcleo Integrador</div>
+        <div class="sm-leg-item" data-smg="mat"><div class="sm-leg-dot" style="background:#3DBD6E"></div>CIM · Materiales</div>
+        <div class="sm-leg-item" data-smg="comp"><div class="sm-leg-dot" style="background:#3A7FD5"></div>CCM · Cómputo</div>
+        <div class="sm-leg-item" data-smg="ind"><div class="sm-leg-dot" style="background:#F5C400"></div>TI · Industrial</div>
+      </div>
+    </div>
+  </div>
+  <canvas id="sm"></canvas>
+  <div class="sm-tip" id="sm-tip"></div>
+</div>
 <div class="poster">
 <header>
   <div>
@@ -517,6 +560,8 @@ semBtns.forEach(btn => {
     const s = +btn.dataset.sem;
     if(activeSems.has(s)) activeSems.delete(s); else activeSems.add(s);
     activeVenn = null;
+    activeNode = null;
+    updateConnected();
     clearGroupLis(); clearVennLis();
     semBtns.forEach(b => {
       b.classList.toggle('sel', activeSems.has(+b.dataset.sem));
@@ -538,6 +583,318 @@ vennLis.forEach(el => {
     draw();
   });
 });
+
+// ── Árbol de Habilidades (game-style) ─────────────────────────────────────────
+(function(){
+  const SM_W=1296, SM_H=810;
+  const NR=11;
+  // Y por semestre: sem 1 abajo, AP arriba
+  const SEM_Y={1:760,2:675,3:590,4:505,5:420,6:335,7:250,8:165,9:80};
+  // Zona X por grupo en vista semestre
+  const TREE_ZONE={mat:[55,315],tronco:[325,640],integ:[640,810],comp:[820,1070],ind:[1080,1260]};
+  const FULL=[70,1230];
+
+  const CAT_NAMES={tronco:'Tronco Común',integ:'Núcleo Integrador',mat:'CIM · Ing. Materiales',comp:'CCM · Cómputo y Mat.',ind:'TI · Tecnología Industrial'};
+  const PANEL_LABELS=['Tronco\nComún','Núcleo\nIntegrador','CIM\nMateriales','CCM\nCómputo','TI\nIndustrial'];
+  const CAT_ORDER=['tronco','integ','mat','comp','ind'];
+
+  function buildTreePos(){
+    const pos={};
+    // Sems 1-2: todos los nodos juntos en ancho completo
+    [1,2].forEach(s=>{
+      const ids=Object.entries(NODE_POS).filter(([,n])=>n.sem===s).map(([id])=>id)
+        .sort((a,b)=>{const go={tronco:0,integ:1};return(go[NODE_POS[a].g]??0)-(go[NODE_POS[b].g]??0)||a.localeCompare(b);});
+      const y=SEM_Y[s], n=ids.length;
+      ids.forEach((id,i)=>{
+        pos[id]={x:n===1?(FULL[0]+FULL[1])/2:FULL[0]+i*(FULL[1]-FULL[0])/(n-1),y,g:NODE_POS[id].g,label:NODE_POS[id].label};
+      });
+    });
+    // Sems 3+: zona por grupo
+    const cells={};
+    Object.entries(NODE_POS).forEach(([id,n])=>{
+      if(n.sem<=2) return;
+      const k=`${n.sem}_${n.g}`;
+      if(!cells[k]) cells[k]=[];
+      cells[k].push(id);
+    });
+    Object.entries(cells).forEach(([k,ids])=>{
+      const[semS,g]=k.split('_');
+      const y=SEM_Y[+semS]||SEM_Y[9];
+      const z=TREE_ZONE[g]||TREE_ZONE.tronco;
+      const n=ids.length;
+      ids.sort();
+      ids.forEach((id,i)=>{
+        pos[id]={x:n===1?(z[0]+z[1])/2:z[0]+i*(z[1]-z[0])/(n-1),y,g:NODE_POS[id].g,label:NODE_POS[id].label};
+      });
+    });
+    return pos;
+  }
+
+  function buildAreaPos(){
+    const pos={};
+    const PW=SM_W/5;
+    const cells={};
+    Object.entries(NODE_POS).forEach(([id,n])=>{
+      const ri=CAT_ORDER.indexOf(n.g);
+      if(ri<0) return;
+      const k=`${n.sem}_${ri}`;
+      if(!cells[k]) cells[k]=[];
+      cells[k].push(id);
+    });
+    Object.entries(cells).forEach(([k,ids])=>{
+      const[semS,riS]=k.split('_').map(Number);
+      const y=SEM_Y[semS]||SEM_Y[9];
+      const x0=riS*PW;
+      const mg=28;
+      const n=ids.length;
+      ids.sort();
+      ids.forEach((id,i)=>{
+        pos[id]={x:n===1?x0+PW/2:x0+mg+i*(PW-2*mg)/(n-1),y,g:NODE_POS[id].g,label:NODE_POS[id].label};
+      });
+    });
+    return pos;
+  }
+
+  let smView='sem';
+  let smPos=buildTreePos();
+  const smAreaPos=buildAreaPos();
+  const smTreePos=smPos;
+  let smActive=null, smHover=null, smFilter=null;
+
+  const sm=document.getElementById('sm');
+  if(!sm) return;
+  const sc=sm.getContext('2d');
+  sm.width=SM_W; sm.height=SM_H;
+
+  function stars(){
+    for(let i=0;i<420;i++){
+      const sx=Math.abs(((Math.sin(i*7.3+1)*0.5+0.5)*9301*SM_W)%SM_W);
+      const sy=Math.abs(((Math.sin(i*3.7+2)*0.5+0.5)*7919*SM_H)%SM_H);
+      const op=(Math.abs(Math.sin(i*5.9))*0.06+0.01).toFixed(3);
+      sc.beginPath(); sc.arc(sx,sy,0.75,0,Math.PI*2);
+      sc.fillStyle=`rgba(255,255,255,${op})`; sc.fill();
+    }
+  }
+
+  function drawSemView(){
+    // Líneas de semestre
+    for(let s=1;s<=9;s++){
+      const y=SEM_Y[s];
+      sc.beginPath(); sc.moveTo(0,y); sc.lineTo(SM_W,y);
+      sc.strokeStyle=s<=8?'rgba(255,255,255,0.05)':'rgba(139,92,246,0.18)';
+      sc.lineWidth=1; sc.setLineDash([10,18]); sc.stroke(); sc.setLineDash([]);
+      const lbl=s<=8?`Sem ${s}`:'AP';
+      sc.fillStyle=s<=8?'rgba(255,255,255,0.18)':'rgba(139,92,246,0.55)';
+      sc.font='400 9px Georgia,serif'; sc.textAlign='left'; sc.textBaseline='bottom';
+      sc.fillText(lbl,4,y-4);
+      const cnt=Object.values(NODE_POS).filter(n=>n.sem===s).length;
+      sc.fillStyle='rgba(255,255,255,0.06)'; sc.font='600 9px Georgia,serif';
+      sc.fillText(cnt,4,y+13);
+    }
+    // Etiquetas de rama arriba
+    [{g:'mat',x:185,lbl:'CIM\nMateriales'},{g:'tronco',x:482,lbl:'Tronco\nComún'},{g:'integ',x:725,lbl:'Núcleo\nInteg.'},{g:'comp',x:945,lbl:'CCM\nCómputo'},{g:'ind',x:1170,lbl:'TI\nIndustrial'}].forEach(({g,x,lbl})=>{
+      const col=STAR_COLORS[g]||STAR_COLORS.tronco;
+      const cnt=Object.values(NODE_POS).filter(n=>n.g===g).length;
+      sc.textAlign='center'; sc.textBaseline='middle';
+      lbl.split('\n').forEach((ln,i)=>{
+        sc.fillStyle=col.text; sc.font='500 8.5px Georgia,serif'; sc.globalAlpha=0.65;
+        sc.fillText(ln,x,14+i*12);
+      });
+      sc.fillStyle=col.core; sc.font='700 12px Georgia,serif'; sc.globalAlpha=0.85;
+      sc.fillText(cnt,x,40); sc.globalAlpha=1;
+    });
+  }
+
+  function drawAreaView(){
+    const PW=SM_W/5;
+    CAT_ORDER.forEach((g,i)=>{
+      const col=STAR_COLORS[g]||STAR_COLORS.tronco;
+      const x0=i*PW;
+      // Fondo panel
+      sc.fillStyle=col.glow+'0.025)';
+      sc.fillRect(x0+2,50,PW-4,SM_H-80);
+      sc.strokeStyle=col.core; sc.lineWidth=1; sc.globalAlpha=0.1;
+      sc.strokeRect(x0+2,50,PW-4,SM_H-80); sc.globalAlpha=1;
+      // Header panel
+      sc.fillStyle=col.glow+'0.18)';
+      sc.fillRect(x0+2,50,PW-4,36);
+      const cnt=Object.values(NODE_POS).filter(n=>n.g===g).length;
+      sc.textAlign='center'; sc.textBaseline='middle';
+      sc.fillStyle=col.text; sc.font='500 8.5px Georgia,serif'; sc.globalAlpha=0.9;
+      PANEL_LABELS[i].split('\n').forEach((ln,li)=>sc.fillText(ln,(x0+x0+PW)/2,58+li*11));
+      sc.fillStyle=col.core; sc.font='700 11px Georgia,serif'; sc.globalAlpha=0.8;
+      sc.fillText(`${cnt} mat.`,(x0+x0+PW)/2,80); sc.globalAlpha=1;
+      // Divisor vertical
+      if(i>0){sc.beginPath();sc.moveTo(x0,50);sc.lineTo(x0,SM_H-28);sc.strokeStyle='rgba(255,255,255,0.06)';sc.lineWidth=1;sc.stroke();}
+    });
+    // Líneas horizontales de semestre
+    for(let s=1;s<=9;s++){
+      const y=SEM_Y[s];
+      sc.beginPath(); sc.moveTo(0,y); sc.lineTo(SM_W,y);
+      sc.strokeStyle='rgba(255,255,255,0.04)'; sc.lineWidth=1;
+      sc.setLineDash([6,14]); sc.stroke(); sc.setLineDash([]);
+    }
+    // Etiquetas sem izquierda de cada panel
+    CAT_ORDER.forEach((g,i)=>{
+      const x0=i*PW;
+      for(let s=1;s<=9;s++){
+        if(!Object.values(NODE_POS).some(n=>n.g===g&&n.sem===s)) continue;
+        const y=SEM_Y[s];
+        sc.fillStyle='rgba(255,255,255,0.12)'; sc.font='400 8px Georgia,serif';
+        sc.textAlign='left'; sc.textBaseline='bottom';
+        sc.fillText(s<=8?`S${s}`:'AP',x0+4,y-3);
+      }
+    });
+  }
+
+  function drawLines(pos){
+    PREREQS.forEach(([f,t])=>{
+      const a=pos[f],b=pos[t];
+      if(!a||!b) return;
+      if(smFilter && a.g!==smFilter && b.g!==smFilter) return;
+      const col=STAR_COLORS[b.g]||STAR_COLORS.tronco;
+      let alpha=smFilter?(a.g===smFilter||b.g===smFilter?0.28:0.04):0.18;
+      let lw=1.4;
+      if(smActive){
+        const linked=f===smActive||t===smActive;
+        alpha=linked?0.9:0.03; lw=linked?2.8:1;
+      } else if(smHover){
+        const linked=f===smHover||t===smHover;
+        alpha=linked?0.65:0.06; lw=linked?2:1;
+      }
+      sc.beginPath(); sc.moveTo(a.x,a.y); sc.lineTo(b.x,b.y);
+      sc.strokeStyle=col.core; sc.lineWidth=lw;
+      sc.globalAlpha=alpha; sc.stroke(); sc.globalAlpha=1;
+    });
+  }
+
+  function drawNodes(pos){
+    Object.entries(pos).forEach(([id,p])=>{
+      const col=STAR_COLORS[p.g]||STAR_COLORS.tronco;
+      const isAct=id===smActive, isHov=id===smHover;
+      let dimmed=false;
+      if(smFilter && p.g!==smFilter) dimmed=true;
+      if(smActive && !isAct){
+        const conn=PREREQS.some(([f,t])=>(f===smActive&&t===id)||(t===smActive&&f===id));
+        if(!conn) dimmed=true;
+      }
+      const glowR=isAct?NR*5.5:isHov?NR*4.2:NR*3;
+      const gA=isAct?0.95:isHov?0.75:dimmed?0.06:0.5;
+      const gr=sc.createRadialGradient(p.x,p.y,0,p.x,p.y,glowR);
+      gr.addColorStop(0,col.glow+`${gA})`);
+      gr.addColorStop(0.38,col.glow+`${gA*0.28})`);
+      gr.addColorStop(1,col.glow+'0)');
+      sc.beginPath(); sc.arc(p.x,p.y,glowR,0,Math.PI*2); sc.fillStyle=gr; sc.fill();
+      // Sparkle en activo
+      if(isAct){
+        const sp=NR*4;
+        sc.strokeStyle=col.core; sc.lineWidth=1.5; sc.globalAlpha=0.5;
+        sc.beginPath(); sc.moveTo(p.x-sp,p.y); sc.lineTo(p.x+sp,p.y);
+        sc.moveTo(p.x,p.y-sp); sc.lineTo(p.x,p.y+sp); sc.stroke(); sc.globalAlpha=1;
+      }
+      const cr=isAct?NR*1.6:NR;
+      sc.beginPath(); sc.arc(p.x,p.y,cr,0,Math.PI*2);
+      sc.fillStyle=dimmed?'rgba(80,80,90,0.2)':col.core;
+      sc.globalAlpha=dimmed?0.2:1; sc.fill(); sc.globalAlpha=1;
+      if(isAct){
+        sc.beginPath(); sc.arc(p.x,p.y,cr+5,0,Math.PI*2);
+        sc.strokeStyle=col.core; sc.lineWidth=1.8; sc.globalAlpha=0.7; sc.stroke(); sc.globalAlpha=1;
+      }
+      // Label en hover/activo
+      if(isAct||isHov){
+        const words=p.label.split(' ');
+        const mid=Math.ceil(words.length/2);
+        const lines=words.length<=2?[p.label]:[words.slice(0,mid).join(' '),words.slice(mid).join(' ')];
+        const fs=isAct?11:10;
+        sc.font=`${isAct?'600':'400'} ${fs}px Georgia,serif`;
+        sc.textAlign='center'; sc.textBaseline='top';
+        const ly=p.y+cr+7;
+        lines.forEach((ln,li)=>{
+          sc.fillStyle='rgba(2,2,10,0.92)';
+          sc.fillText(ln,p.x+1,ly+li*14+1);
+          sc.fillStyle=col.text; sc.fillText(ln,p.x,ly+li*14);
+        });
+      }
+    });
+  }
+
+  function drawSM(){
+    sc.clearRect(0,0,SM_W,SM_H);
+    sc.fillStyle='#02020a'; sc.fillRect(0,0,SM_W,SM_H);
+    stars();
+    if(smView==='sem') drawSemView(); else drawAreaView();
+    drawLines(smPos);
+    drawNodes(smPos);
+  }
+
+  drawSM();
+
+  // Tabs
+  document.querySelectorAll('.sm-tab').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      smView=btn.dataset.smview;
+      smPos=smView==='sem'?smTreePos:smAreaPos;
+      smActive=null; smHover=null;
+      document.querySelectorAll('.sm-tab').forEach(b=>b.classList.toggle('sel',b.dataset.smview===smView));
+      drawSM();
+    });
+  });
+
+  // Filtro por leyenda
+  document.querySelectorAll('.sm-leg-item[data-smg]').forEach(el=>{
+    el.addEventListener('click',()=>{
+      const g=el.dataset.smg;
+      smFilter=smFilter===g?null:g;
+      smActive=null;
+      document.querySelectorAll('.sm-leg-item[data-smg]').forEach(li=>{
+        li.classList.toggle('sel',!!smFilter&&li.dataset.smg===smFilter);
+        li.classList.toggle('dim',!!smFilter&&li.dataset.smg!==smFilter);
+      });
+      drawSM();
+    });
+  });
+
+  // Hover + tooltip
+  const tip=document.getElementById('sm-tip');
+  sm.addEventListener('mousemove',e=>{
+    const r=sm.getBoundingClientRect();
+    const mx=(e.clientX-r.left)*SM_W/r.width, my=(e.clientY-r.top)*SM_H/r.height;
+    let hit=null;
+    for(const[id,p] of Object.entries(smPos)){
+      const dx=p.x-mx,dy=p.y-my;
+      if(dx*dx+dy*dy<(NR*2.8)*(NR*2.8)){hit=id;break;}
+    }
+    const prev=smHover; smHover=hit;
+    if(hit){
+      const n=NODE_POS[hit];
+      const prereqsOf=PREREQS.filter(([,t])=>t===hit).map(([f])=>NODE_POS[f]?.label).filter(Boolean);
+      const desbloquea=PREREQS.filter(([f])=>f===hit).map(([,t])=>NODE_POS[t]?.label).filter(Boolean);
+      const semLbl=n.sem===9?'AP':`Semestre ${n.sem}`;
+      tip.innerHTML=`<b>${n.label}</b>${semLbl} · ${CAT_NAMES[n.g]||n.g}`+
+        (prereqsOf.length?`<br><span style="color:#555">Requiere: </span>${prereqsOf.join(', ')}`:'');
+      tip.style.display='block';
+      tip.style.left=(e.clientX-sm.getBoundingClientRect().left+16)+'px';
+      tip.style.top=(e.clientY-sm.getBoundingClientRect().top-14)+'px';
+    } else {
+      tip.style.display='none';
+    }
+    if(prev!==smHover) drawSM();
+  });
+  sm.addEventListener('mouseleave',()=>{smHover=null;tip.style.display='none';drawSM();});
+
+  // Click
+  sm.addEventListener('click',e=>{
+    const r=sm.getBoundingClientRect();
+    const mx=(e.clientX-r.left)*SM_W/r.width, my=(e.clientY-r.top)*SM_H/r.height;
+    let hit=null;
+    for(const[id,p] of Object.entries(smPos)){
+      const dx=p.x-mx,dy=p.y-my;
+      if(dx*dx+dy*dy<(NR*2.8)*(NR*2.8)){hit=id;break;}
+    }
+    smActive=smActive===hit?null:hit;
+    drawSM();
+  });
+})();
 </script>
 </body>
 </html>
